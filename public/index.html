@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حركة | نظام إدارة حجوزات حفلات التخرج والداشبورد</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- SheetJS XLSX library for browser fallback export -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <div class="brand-row">
+    <div class="brand">
+      <div class="brand-mark heading-font">حر</div>
+      <div>
+        <h1>حركة لإدارة الحفلات</h1>
+        <p>سجل حجوزات حفلة التخرج — الداشبورد، التحليلات، وإدارة أرقام التحويل</p>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-chip"><div class="num heading-font" id="statCount">0</div><div class="lbl">عدد الحجوزات</div></div>
+      <div class="stat-chip"><div class="num heading-font" id="statCompanions">0</div><div class="lbl">إجمالي المرافقين</div></div>
+      <div class="stat-chip"><div class="num heading-font" id="statPaid">0</div><div class="lbl">دفع كامل</div></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- Navigation Tabs -->
+  <nav class="nav-tabs">
+    <button class="nav-tab active" data-tab="tab-bookings">🎓 الحجوزات</button>
+    <button class="nav-tab" data-tab="tab-dashboard">📊 الداشبورد والتحليلات</button>
+    <button class="nav-tab" data-tab="tab-numbers">📱 إدارة أرقام التحويل</button>
+    <button class="btn btn-excel-top" id="exportExcelTopBtn">📥 تصدير ملف Excel</button>
+  </nav>
+
+  <!-- TAB 1: BOOKINGS LIST & FORM -->
+  <section id="tab-bookings" class="tab-content active">
+    <div class="toolbar">
+      <input type="text" class="search-box" id="searchInput" placeholder="ابحث بالاسم، القسم، أو الرقم المحول عليه...">
+      <select class="filter-select" id="filterDept">
+        <option value="">جميع الأقسام</option>
+      </select>
+      <button class="btn btn-primary" id="toggleFormBtn">+ حجز جديد</button>
+    </div>
+
+    <!-- Booking Form Panel -->
+    <div class="form-panel" id="formPanel">
+      <h2 id="formTitle">بيانات الحجز الجديدة</h2>
+      <form id="bookingForm">
+        <input type="hidden" id="editId">
+        <div class="form-grid">
+          <div class="field">
+            <label>الاسم على الدرع *</label>
+            <input type="text" id="shieldName" required placeholder="الاسم ثلاثي أو رباعي للدرع">
+          </div>
+          <div class="field">
+            <label>الاسم على الوشاح *</label>
+            <input type="text" id="sashName" required placeholder="الاسم المقرر على الوشاح">
+          </div>
+          <div class="field">
+            <label>الاسم على تاج الاسم (الدبوس) *</label>
+            <input type="text" id="tagName" required placeholder="الاسم على دبوس التاج">
+          </div>
+          <div class="field">
+            <label>القسم / الكلية *</label>
+            <input type="text" id="department" required placeholder="مثال: هندسة حاسبات، طب بشري، تجارة...">
+          </div>
+          <div class="field">
+            <label>عدد المرافقين الإضافيين *</label>
+            <span class="hint">غير الاتنين الأساسيين الشاملين في الحجز</span>
+            <input type="number" id="companions" min="0" value="0" required>
+          </div>
+          <div class="field">
+            <label>الصورة (للبانر والشاشة) *</label>
+            <div class="upload-box" id="photoBox">
+              <span id="photoLabel">📷 اضغط لاختيار صورة الطالب</span>
+            </div>
+            <input type="file" id="photoInput" accept="image/*" style="display:none">
+          </div>
+
+          <div class="field full">
+            <label class="heading-font section-divider">بيانات التحويل والدفع</label>
+          </div>
+
+          <div class="field">
+            <label>اختر الرقم المحول عليه *</label>
+            <select id="transferNumberSelect" required>
+              <option value="">-- اختر من أرقامك المحول عليها --</option>
+            </select>
+          </div>
+
+          <div class="field" id="customNumberContainer" style="display:none;">
+            <label>أدخل رقم تحويل مخصص *</label>
+            <input type="text" id="customTransferNumber" placeholder="أدخل الرقم المحول عليه">
+          </div>
+
+          <div class="field">
+            <label>نوع التحويل *</label>
+            <select id="transferType" required>
+              <option value="">اختر الخدمة...</option>
+              <option value="انستاباي">انستاباي (InstaPay)</option>
+              <option value="فودافون كاش">فودافون كاش (Vodafone Cash)</option>
+              <option value="اتصالات كاش">اتصالات كاش</option>
+              <option value="أورنج كاش">أورنج كاش</option>
+              <option value="تحويل بنكي">تحويل بنكي</option>
+              <option value="نقداً">نقداً</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>حالة الدفع *</label>
+            <select id="paymentStatus" required>
+              <option value="">اختر...</option>
+              <option value="كامل">كامل (تم السداد)</option>
+              <option value="ناقص">ناقص (متبقي المبلغ)</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>إيصال / سكرين شوت التحويل</label>
+            <div class="upload-box" id="screenshotBox">
+              <span id="screenshotLabel">🧾 اختر صورة سكرين شوت التحويل</span>
+            </div>
+            <input type="file" id="screenshotInput" accept="image/*" style="display:none">
+          </div>
+
+          <div class="field full">
+            <label>ملاحظات إضافية (طلبات خاصة، المتبقي من المبلغ، إلخ)</label>
+            <textarea id="notes" placeholder="اكتب أي ملاحظات خاصة بالحجز هنا..."></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="saveBtn">حفظ الحجز</button>
+          <button type="button" class="btn btn-ghost" id="cancelFormBtn">إلغاء</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Ticket Grid -->
+    <div id="ticketGrid" class="ticket-grid"></div>
+  </section>
+
+  <!-- TAB 2: DASHBOARD & DEPARTMENT ANALYTICS -->
+  <section id="tab-dashboard" class="tab-content">
+    <div class="dash-summary-cards">
+      <div class="dash-card-mini">
+        <div class="icon">🎓</div>
+        <div class="info">
+          <div class="val" id="dashTotalBookings">0</div>
+          <div class="lbl">إجمالي الحجوزات</div>
+        </div>
+      </div>
+      <div class="dash-card-mini">
+        <div class="icon">👥</div>
+        <div class="info">
+          <div class="val" id="dashTotalCompanions">0</div>
+          <div class="lbl">إجمالي المرافقين</div>
+        </div>
+      </div>
+      <div class="dash-card-mini">
+        <div class="icon">🏛️</div>
+        <div class="info">
+          <div class="val" id="dashTotalDepts">0</div>
+          <div class="lbl">عدد الأقسام المشاركة</div>
+        </div>
+      </div>
+      <div class="dash-card-mini">
+        <div class="icon">✅</div>
+        <div class="info">
+          <div class="val" id="dashPaidPercentage">0%</div>
+          <div class="lbl">نسبة الاكتفاء / كامل الدفع</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <!-- Department Breakdown Chart & Cards -->
+      <div class="dash-card">
+        <h3>📊 تفاصيل الأقسام (عدد الحجوزات والمرافقين بكل قسم)</h3>
+        <div id="deptBreakdownList" class="dept-list">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Transfer Numbers Analytics Card -->
+      <div class="dash-card">
+        <h3>📱 إحصائيات الأرقام المحول عليها</h3>
+        <p class="dash-sub">توزيع الحجوزات والمبالغ على أرقام التحويل المختلفة</p>
+        <div id="numberUsageList" class="number-usage-list">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 3: MANAGING SAVED TRANSFER NUMBERS -->
+  <section id="tab-numbers" class="tab-content">
+    <div class="dash-card" style="margin-bottom: 24px;">
+      <h3>إضافة رقم تحويل جديد (فودافون كاش / انستاباي)</h3>
+      <p class="dash-sub">قم بإضافة كافة أرقامك المحول عليها حتى تظهر تلقائياً كـ خيارات سريعة عند تسجيل أي حجز جديد</p>
+      
+      <form id="addNumberForm" class="number-add-form">
+        <div class="form-grid">
+          <div class="field">
+            <label>الرقم أو اسم الحساب (المحول عليه) *</label>
+            <input type="text" id="newNumValue" placeholder="مثال: 01012345678 أو instapay@name" required>
+          </div>
+          <div class="field">
+            <label>اسم/وصف الحساب *</label>
+            <input type="text" id="newNumName" placeholder="مثال: فودافون كاش الحساب الرئيسي / انستاباي باسم أحمد" required>
+          </div>
+          <div class="field">
+            <label>نوع الخدمة *</label>
+            <select id="newNumType" required>
+              <option value="فودافون كاش">فودافون كاش</option>
+              <option value="انستاباي">انستاباي</option>
+              <option value="اتصالات كاش">اتصالات كاش</option>
+              <option value="أورنج كاش">أورنج كاش</option>
+              <option value="تحويل بنكي">تحويل بنكي</option>
+            </select>
+          </div>
+          <div class="field full" style="margin-top: 10px;">
+            <button type="submit" class="btn btn-primary">+ حفظ رقم التحويل</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="dash-card">
+      <h3>قائمة الأرقام والحسابات المحفوظة</h3>
+      <div id="savedNumbersList" class="saved-numbers-grid">
+        <!-- Dynamically populated -->
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Details Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" id="modalCloseBtn">✕</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
