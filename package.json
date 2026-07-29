@@ -1,0 +1,15 @@
+{
+  "name": "harka-graduation-app",
+  "version": "1.0.0",
+  "description": "حركة لإدارة حجوزات حفلات التخرج مع داشبورد وتصدير إكسيل وبك إند",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "xlsx": "^0.18.5"
+  }
+}
